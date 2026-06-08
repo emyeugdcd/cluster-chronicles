@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: logging
+  labels:
+    app: kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:7.17.10
+        env:
+        - name: ELASTICSEARCH_HOSTS
+          value: "http://elasticsearch-service:9200"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 256Mi
+          limits:
+            cpu: 300m
+            memory: 512Mi
+        ports:
+        - containerPort: 5601
+          name: ui
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-service
+  namespace: logging
+spec:
+  selector:
+    app: kibana
+  ports:
+  - name: ui
+    port: 5601
+    targetPort: 5601

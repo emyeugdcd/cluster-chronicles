@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vitals-backend-monitor
+  namespace: vitals-app
+  labels:
+    release: prometheus  # MUST match the release name of your Helm deployment
+spec:
+  selector:
+    matchLabels:
+      app: vitals-backend
+  endpoints:
+  - port: http
+    path: /prometheus
+    interval: 15s

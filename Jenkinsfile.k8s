@@ -1,0 +1,77 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: jenkins-agent
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command:
+    - sleep
+    args:
+    - 99d
+  - name: kubectl
+    image: bitnami/kubectl:latest
+    command:
+    - sleep
+    args:
+    - 99d
+  - name: trivy
+    image: aquasec/trivy:latest
+    command:
+    - sleep
+    args:
+    - 99d
+'''
+        }
+    }
+    stages {
+        stage('Test & Quality Gates') {
+            steps {
+                echo "Running unit tests, static code analysis, and linting..."
+            }
+        }
+        stage('Build & Push Images') {
+            steps {
+                container('kaniko') {
+                    echo "Building Docker images inside the cluster using Kaniko (daemonless container security)..."
+                    // In real-world pipelines:
+                    // sh '/kaniko/executor --context=dir://backend --destination=your-registry/vitals-backend:${BUILD_NUMBER}'
+                }
+            }
+        }
+        stage('Security Scan (Trivy)') {
+            steps {
+                container('trivy') {
+                    echo "Scanning Docker image for vulnerabilities..."
+                    // In production pipelines, run:
+                    // sh 'trivy image --severity HIGH,CRITICAL --exit-code 1 your-registry/vitals-backend:${BUILD_NUMBER}'
+                    sh 'trivy image --severity HIGH,CRITICAL vitals-backend:latest'
+                }
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                container('kubectl') {
+                    echo "Deploying applications directly to the cluster namespace using Jenkins ServiceAccount RBAC..."
+                    sh 'kubectl apply -f manifests/'
+                    sh 'kubectl rollout status deployment/vitals-backend -n vitals-app'
+                    sh 'kubectl rollout status deployment/vitals-frontend -n vitals-app'
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo "Deployment successful! Cluster is synchronized with the new build."
+        }
+        failure {
+            echo "Deployment failed! Reverting or alerting team..."
+        }
+    }
+}

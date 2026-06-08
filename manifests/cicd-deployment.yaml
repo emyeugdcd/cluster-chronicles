@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vitals-cicd
+  namespace: vitals-app
+  labels:
+    app: vitals-cicd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vitals-cicd
+  template:
+    metadata:
+      labels:
+        app: vitals-cicd
+    spec:
+      serviceAccountName: jenkins-sa
+      securityContext:
+        runAsUser: 0
+      containers:
+      - name: jenkins
+        image: jenkins/jenkins:lts-jdk17
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 50000
+          name: agent
+        env:
+        - name: JAVA_OPTS
+          value: "-Djenkins.install.runSetupWizard=false"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+        - name: jenkins-storage
+          mountPath: /var/jenkins_home
+      volumes:
+      - name: jenkins-storage
+        persistentVolumeClaim:
+          claimName: jenkins-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vitals-cicd-service
+  namespace: vitals-app
+spec:
+  selector:
+    app: vitals-cicd
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+  - name: agent
+    protocol: TCP
+    port: 50000
+    targetPort: 50000

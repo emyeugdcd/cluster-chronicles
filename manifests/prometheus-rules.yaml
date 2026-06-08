@@ -1,0 +1,67 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: vitals-alert-rules
+  namespace: monitoring
+  labels:
+    release: prometheus  # Links this rule to the prometheus deployment
+spec:
+  groups:
+  - name: vitals-alerts
+    rules:
+    - alert: NodeCPUUsageHigh
+      expr: 100 - (avg by(node) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Node CPU usage is high on {{ $labels.node }}"
+        description: "CPU usage on node {{ $labels.node }} has exceeded 80% for more than 5 minutes."
+    - alert: NodeDiskSpaceLow
+      expr: (node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Node disk space is low"
+        description: "Available disk space on the root filesystem has fallen below 20%."
+    - alert: NodeMemoryUsageHigh
+      expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Node memory usage is high"
+        description: "Node memory usage has exceeded 90% for more than 5 minutes."
+    - alert: PodFrequentlyRestarting
+      expr: increase(kube_pod_container_status_restarts_total[15m]) > 3
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod is frequently restarting"
+        description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} container has restarted more than 3 times in 15 minutes."
+    - alert: PodMemoryLimitExceeded
+      expr: container_memory_working_set_bytes{container!=""} / on(pod) group_left() kube_pod_container_resource_limits{resource="memory"} * 100 > 80
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod memory usage is close to limit"
+        description: "Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} is using more than 80% of its memory limit."
+    - alert: PodStuckInPending
+      expr: kube_pod_status_phase{phase="Pending"} == 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod is stuck in Pending state"
+        description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has been in Pending state for more than 5 minutes."
+    - alert: KubernetesAPIServerDown
+      expr: absent(up{job="apiserver"})
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Kubernetes API Server is unreachable"
+        description: "API server metrics are absent. The API Server may be down."

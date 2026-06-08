@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vitals-backend
+  namespace: vitals-app
+  labels:
+    app: vitals-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vitals-backend
+  template:
+    metadata:
+      labels:
+        app: vitals-backend
+    spec:
+      containers:
+      - name: backend
+        image: vitals-backend:latest
+        imagePullPolicy: Never  # Tells K8s to use the locally loaded image instead of trying to pull it
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PORT
+          valueFrom:
+            secretKeyRef:
+              name: vitals-secret
+              key: BACKEND_PORT
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
