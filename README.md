@@ -1,8 +1,31 @@
 # Cluster Chronicles: Kubernetes Workload Migration & Observability
 
-This project demonstrates the complete migration of a microservices application (Go Backend + NodeJS Frontend) from traditional VM-based environments (`sherlock-logs`) to a local, Kubernetes-orchestrated cluster using **Minikube**. 
+This project continues from the previous four projects and demonstrates the complete migration of a microservices application (Go Backend + NodeJS Frontend) from traditional VM-based environments (`sherlock-logs`) to a local, Kubernetes-orchestrated cluster using **Minikube**. 
 
 It implements persistent storage mapping, Role-Based Access Control (RBAC), and a fully optimized Observability Stack (Prometheus, Grafana, Alertmanager, Elasticsearch, Fluent Bit, and Kibana).
+
+Here's a summary of all previous projects so you have context for what you're reviewing:
+
+**Project 1 - Server Sorcery**: I have built a network of 4 virtual machines simulating real-life infrastructure: a load balancer, two web servers, an app server. 
+- Each VM is automatically installed with the necessary software, security hardening (UFW, Fail2Ban, SSH restrictions), and networking configuration using Ansible.
+
+Link to project 1: [https://github.com/emyeugdcd/server-sorcery-101](https://github.com/emyeugdcd/server-sorcery-101)
+
+**Project 2 - Infrastructure Insight**: with the 4 VMs of the first project running, I then built a surgical-theatre-themed system metrics dashboard (well since I am a surgical nurse haha). The backend is a Go application running on the appserver: it reads raw performance data directly from the appserver's Linux kernel's virtual filesystem and exposes that data as a JSON API. The frontend is a Node.js application running on both webservers: it fetches from the backend API and renders the metrics as a live Medical Dashboard in the browser. When you visit http://192.168.56.11/, the loadbalancer routes your request to either webserver1 or webserver2. Backend and Frontend applications are deployed by Docker.
+
+Link to project 2: [https://github.com/emyeugdcd/infrastructure-insight](https://github.com/emyeugdcd/infrastructure-insight)
+
+**Project 3 - Automation Alchemy**: Automates everything from the first two projects into a single command: ./super_deploy.sh. Additionally, a GitHub Actions CI/CD pipeline is configured so that whenever we make changes to the backend and frontend application codes and push them, the corresponding running Docker containers will be destroyed and built again. That is what CI/CD means: continuous integration and continuous delivery
+
+Link to project 3: [https://github.com/emyeugdcd/automation-alchemy](https://github.com/emyeugdcd/automation-alchemy)
+
+**Project 4 - Sherlock Logs**: This project builds upon the `automation-alchemy` infrastructure, integrating a robust observability stack. It adds a centralized **Monitoring VM** that hosts Prometheus, Grafana, and the ELK Stack (Elasticsearch, Logstash, Kibana) to provide real-time metrics and aggregated logging across all nodes.
+
+Link to project 4: [https://github.com/emyeugdcd/sherlock-logs](https://github.com/emyeugdcd/sherlock-logs)
+
+
+**Project 5 - Cluster Chronicles**: This project continues from the previous four projects and demonstrates the complete migration of a microservices application (Go Backend + NodeJS Frontend) from traditional VM-based environments (`sherlock-logs`) to a local, Kubernetes-orchestrated cluster using **Minikube**. 
+
 
 ---
 
@@ -82,7 +105,7 @@ Apply the ServiceAccount permission structure and spawn Jenkins:
 kubectl apply -f manifests/cicd-rbac.yaml -f manifests/cicd-deployment.yaml
 ```
 
-### Step 5: Deploy the Observability Stack (Phase 6)
+### Step 5: Deploy the Observability Stack 
 Add the Prometheus Helm chart, apply custom alerting rules, and deploy the EFK logging stack:
 ```bash
 # Deploy Prometheus Operator & Grafana
@@ -97,7 +120,7 @@ kubectl apply -f manifests/prometheus-rules.yaml -f manifests/servicemonitor.yam
 kubectl apply -f manifests/elasticsearch.yaml -f manifests/fluent-bit.yaml -f manifests/kibana.yaml
 ```
 
-### Step 6: Deploy Autoscaling & Security Scanning (Phase 7)
+### Step 6: Deploy Autoscaling & Security Scanning 
 Enable the Metrics Server, deploy the Horizontal Pod Autoscaler (HPA) for the frontend service, and inspect HPA status:
 ```bash
 # Enable Metrics Server addon in Minikube
@@ -124,18 +147,19 @@ All core interfaces run cluster-internally. To access them on your host Mac/PC b
 | **Kibana Logs** | 5601 | [http://localhost:5601](http://localhost:5601) | `kubectl port-forward -n logging service/kibana-service 5601:5601` |
 | **Prometheus UI** | 9090 | [http://localhost:9191](http://localhost:9191) | `kubectl port-forward -n monitoring service/prometheus-kube-prometheus-prometheus 9191:9090` |
 
-### 🔑 Grafana Login Password
+### Host Header mapping for Ingress (`vitals.local` & `vitals-backend-service`)
+Add this line to your host's `/etc/hosts` file (located at `C:\Windows\System32\drivers\etc\hosts` on Windows, or `/etc/hosts` on macOS/Linux):
+```text
+127.0.0.1 vitals.local vitals-backend-service
+```
+### Grafana Login Password
 Retrieve the autogenerated admin password using:
 ```bash
 kubectl get secret -n monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo
 ```
 *(Default username is `admin`).*
 
-### 📝 Host Header mapping for Ingress (`vitals.local`)
-Add this line to your host's `/etc/hosts` file (located at `C:\Windows\System32\drivers\etc\hosts` on Windows, or `/etc/hosts` on macOS/Linux):
-```text
-127.0.0.1 vitals.local
-```
+
 
 ---
 
@@ -188,5 +212,4 @@ Minikube Cluster
 In this project, I have created several documents to help understand the project better. You can find them in the `docs` folder. Some of the key documents are:
 - autoscaling-security.md, k9s-lens-tutorial.md, kubernetes-quickguide.md, learning-notes.md, manifests-guide.md, proxy.md, walkthrough.md: These documents serve to provide a comprehensive understanding of the project, with new concepts, definitions and guides, from the basics of Kubernetes to the advanced concepts of autoscaling and security.
 - project-overview.md: requirements of the project
-- testing-requirements.md: testing requirements by the school
-- how-to-test.md: answers to the testing requirements by the school.
+- testing-requirements.md: testing requirements by kood/sisu and answers for the test in markdown format (also, for some tests: guidances on how to test for them)

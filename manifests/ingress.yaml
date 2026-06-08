@@ -17,3 +17,13 @@ spec:
             name: vitals-frontend-service
             port:
               number: 3000
+  - host: vitals-backend-service
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: vitals-backend-service
+            port:
+              number: 8080
