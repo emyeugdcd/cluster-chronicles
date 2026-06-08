@@ -1,6 +1,6 @@
 #  Autoscaling & Vulnerability Scanning
 
-This guide explains the autoscaling mechanism and the security audit layer that was implemented in Phase 7 of this Kubernetes cluster project.
+This guide explains the autoscaling mechanism and the security audit layer that was implemented in this Kubernetes cluster project.
 
 ---
 

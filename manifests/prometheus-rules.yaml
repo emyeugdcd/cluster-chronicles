@@ -18,7 +18,7 @@ spec:
         summary: "Node CPU usage is high on {{ $labels.node }}"
         description: "CPU usage on node {{ $labels.node }} has exceeded 80% for more than 5 minutes."
     - alert: NodeDiskSpaceLow
-      expr: (node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+      expr: (node_filesystem_free_bytes{mountpoint=~"/|/data"} / node_filesystem_size_bytes{mountpoint=~"/|/data"}) * 100 < 20
       for: 1m
       labels:
         severity: warning
@@ -42,7 +42,7 @@ spec:
         summary: "Pod is frequently restarting"
         description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} container has restarted more than 3 times in 15 minutes."
     - alert: PodMemoryLimitExceeded
-      expr: container_memory_working_set_bytes{container!=""} / on(pod) group_left() kube_pod_container_resource_limits{resource="memory"} * 100 > 80
+      expr: container_memory_working_set_bytes / on(pod) group_left() kube_pod_container_resource_limits{resource="memory"} * 100 > 80
       for: 5m
       labels:
         severity: warning

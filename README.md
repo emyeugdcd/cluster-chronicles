@@ -147,6 +147,16 @@ All core interfaces run cluster-internally. To access them on your host Mac/PC b
 | **Kibana Logs** | 5601 | [http://localhost:5601](http://localhost:5601) | `kubectl port-forward -n logging service/kibana-service 5601:5601` |
 | **Prometheus UI** | 9090 | [http://localhost:9191](http://localhost:9191) | `kubectl port-forward -n monitoring service/prometheus-kube-prometheus-prometheus 9191:9090` |
 
+Or just run this one command:
+### Start all port-forwards in the background
+kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 8080:80 &
+kubectl port-forward -n vitals-app service/vitals-cicd-service 9090:8080 &
+kubectl port-forward -n monitoring service/prometheus-grafana 9000:80 &
+kubectl port-forward -n logging service/kibana-service 5601:5601 &
+kubectl port-forward -n monitoring service/prometheus-kube-prometheus-prometheus 9191:9090 &
+
+Note: After running these, press Enter to get your command prompt back. The services will continue running silently.
+
 ### Host Header mapping for Ingress (`vitals.local` & `vitals-backend-service`)
 Add this line to your host's `/etc/hosts` file (located at `C:\Windows\System32\drivers\etc\hosts` on Windows, or `/etc/hosts` on macOS/Linux):
 ```text
@@ -208,7 +218,68 @@ Minikube Cluster
  └── Namespace: "ingress-nginx"
       └── Pod F (nginx-ingress-controller) ──► Routing gate
 
-### 6. Docs
+
+### 6. Quick UI Setup & Testing Guide (Browser Tools)
+Once your port-forwards are active, here is how to verify and explore each UI:
+
+##### Grafana (Dashboards)
+Access URL: http://localhost:9000
+Login Credentials:
+Username: admin
+Password: Retrieve it by running:
+```
+kubectl get secret -n monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo
+```
+
+What to test:
+- Click the Menu icon (top-left) -> Dashboards.
+- The pre-installed dashboards (imported via ConfigMaps/Helm sidecar) will be listed:
+  - Kubernetes / Compute Resources / Namespace (Pods): Select namespace vitals-app to see live frontend/backend CPU and Memory consumption.
+  - Vitals App Custom Dashboard: Displays your custom Go metrics (app_cpu_usage_percent, app_memory_used_mb).
+
+##### Kibana (Centralized Logs)
+Access URL: http://localhost:5601
+First-Time Setup (Create Index Pattern):
+- Go to Management (gear icon on the left sidebar) -> Stack Management.
+- Click Index Patterns -> Create index pattern.
+- Under Name, type * to see everything, then click Next step.
+- Select @timestamp as the Primary Time Field and click Create index pattern.
+What to test:
+- Go to Analytics -> Discover (compass icon).
+You will see a live stream of aggregated logs from all nodes.
+Search vitals-backend or vitals-frontend in the search bar to filter logs instantly.
+
+##### Prometheus (Metrics & Alert Rules)
+Access URL: http://localhost:9191
+What to test:
+- Querying metrics: In the home search box, type app_cpu_usage_percent or kube_pod_container_status_restarts_total and click Execute. Click the Graph tab to see metrics plotting over time.
+- Monitoring alerts: Click the Alerts tab in the top navigation bar. You will see all our configured alert rules from prometheus-rules.yaml (e.g. NodeCPUUsageHigh, PodStuckInPending). They will be colored:
+  - Green (Inactive): Condition not met (all good).
+  - Yellow (Pending): Condition met, but waiting for the for duration limit (e.g. CPU > 80% for less than 5 minutes).
+  - Red (Firing): Condition met and threshold exceeded the duration limit. An alert message has been generated and sent to Alertmanager!
+
+### 7. Cleaning up
+How to clean up Kubernetes cache and cluster state on your machine?
+Kubernetes resources (deployments, pods, services) don't save physical files to your host machine disk (they live inside Minikube's virtual machine/container). However, if we keep rebuild/delete cycles active, Docker images and persistent volumes can consume disk space over time.
+
+Here are the cleanup commands:
+
+To destroy the entire cluster: This deletes the Minikube node VM/containers, removing all cluster configurations, cached databases, and persistent volumes:
+```
+minikube delete
+```
+
+To clean up Docker images and build caches on your machine: If you build images locally with docker build, build caches and untagged images accumulate. Run this to reclaim space:
+```
+docker system prune -a --volumes --force
+```
+
+To clean up unused images inside Minikube: If you loaded many test images into Minikube, clean them up inside the cluster runtime:
+```
+minikube image prune
+```
+
+### 8. Docs
 In this project, I have created several documents to help understand the project better. You can find them in the `docs` folder. Some of the key documents are:
 - autoscaling-security.md, k9s-lens-tutorial.md, kubernetes-quickguide.md, learning-notes.md, manifests-guide.md, proxy.md, walkthrough.md: These documents serve to provide a comprehensive understanding of the project, with new concepts, definitions and guides, from the basics of Kubernetes to the advanced concepts of autoscaling and security.
 - project-overview.md: requirements of the project

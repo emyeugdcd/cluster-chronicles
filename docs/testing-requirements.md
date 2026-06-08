@@ -268,25 +268,75 @@ Alert rules are defined in [prometheus-rules.yaml] and loaded into Prometheus.
 
 ### 37. Alert is created for node CPU usage exceeding 80% for more than 5 minutes
 * **Rule**: `NodeCPUUsageHigh`
-* **Trigger Command**: SSH into the Minikube VM and generate CPU load using `stress-ng`:
-  ```bash
-  minikube ssh -- stress-ng --cpu 4 --timeout 310s
-  ```
+* **Trigger Command**: 
+  * **Option 1: Kubernetes-native (Recommended)**. Run a temporary container on the cluster to consume host CPU (no SSH needed, runs in `default` namespace to bypass `vitals-app` resource quota restrictions):
+    ```bash
+    kubectl run node-cpu-stress --image=polinux/stress-ng --restart=Never -- --cpu 4 --timeout 310s
+    ```
+  * **Option 2: SSH Native Loop**. SSH into Minikube and run a loop using native `dd` (since `stress-ng` is not pre-installed on the host VM):
+    ```bash
+    minikube ssh -- "timeout 310 dd if=/dev/zero of=/dev/null & timeout 310 dd if=/dev/zero of=/dev/null & timeout 310 dd if=/dev/zero of=/dev/null & timeout 310 dd if=/dev/zero of=/dev/null"
+    ```
 
 ### 38. Alert is created for node available disk space falling below 20%
 * **Rule**: `NodeDiskSpaceLow`
-* **Trigger Command**: SSH into the Minikube VM and create a large dummy file:
+* **Trigger Command**: SSH into the Minikube VM and create a large dummy file (using `sudo` to write to root directory):
   ```bash
-  minikube ssh -- fallocate -l 10G /large_file.img
+  minikube ssh -- sudo fallocate -l 10G /large_file.img
   ```
-  *(Cleanup command: `minikube ssh -- rm -f /large_file.img`)*
+  *(Cleanup command: `minikube ssh -- sudo rm -f /large_file.img`)*
+
+This alert didn't work on my Mac, but this is actually a very interesting system behavior:
+
+Why it didn't fire (The 1 Terabyte Mac Disk): 
+If we check the disk size inside my Minikube container VM by running df -h /, here is the output:
+
+text
+Filesystem      Size  Used Avail Use% Mounted on
+overlay        1007G   25G  932G   3% /
+Because Minikube is running with the Docker driver on my Mac:
+
+The container shares my Mac's actual hard drive capacity, which reports a massive 1 Terabyte (1007 GB) of disk space!
+The current usage is only 3% (meaning 97% is free space).
+To make the free space drop below the 20% threshold (less than ~200GB free), we would need to create a dummy file of over 730 Gigabytes!
+
+BUT I CANNOT allocate a 750GB file! Doing so will write directly to my Mac's physical hard drive, fill up my actual storage, and could crash my Mac's operating system!
+
+The Safe Testing Solution (Threshold Simulation)
+In containerized local clusters, the standard industry practice to test disk space alerts safely is threshold simulation (temporarily raising the trigger threshold to match the current state).
+
+Since my current free space is 97%, we can temporarily configure the alert to trigger if free space falls below 98% (which it currently is, since 97% < 98%):
+
+So what I did: 
+Open my `manifests/prometheus-rules.yaml`
+Go to line 21 (the `NodeDiskSpaceLow` alert):
+```yaml
+expr: (node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+```
+Change the `< 20` to `< 98`:
+```yaml
+expr: (node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 98
+```
+Apply the updated rule in my terminal:
+```bash
+kubectl apply -f manifests/prometheus-rules.yaml
+```
+
+Go to the Prometheus Alerts UI at `http://localhost:9191/alerts`.
+Within 1 minute (the `for: 1m` duration in the rule), the `NodeDiskSpaceLow` alert will turn Yellow (Pending) and then Red (Firing)!
+Once I am done verifying, I changed the rule back to `< 20` in `manifests/prometheus-rules.yaml` and ran the apply command again
 
 ### 39. Alert is created for node memory usage exceeding 90% for more than 5 minutes
 * **Rule**: `NodeMemoryUsageHigh`
-* **Trigger Command**: SSH into the Minikube VM and consume memory:
-  ```bash
-  minikube ssh -- stress-ng --vm 1 --vm-bytes 5G --timeout 310s
-  ```
+* **Trigger Command**:
+  * **Option 1: Kubernetes-native (Recommended)**. Run a temporary container on the cluster to consume host RAM (no SSH needed, runs in `default` namespace to bypass `vitals-app` resource quota restrictions):
+    ```bash
+    kubectl run node-mem-stress --image=polinux/stress-ng --restart=Never -- --vm 1 --vm-bytes 5G --timeout 310s
+    ```
+  * **Option 2: SSH Memory Allocation**. SSH into Minikube and run a python memory allocation:
+    ```bash
+    minikube ssh -- "python3 -c 'import time; a = bytearray(5 * 1024 * 1024 * 1024); time.sleep(310)'"
+    ```
 
 ### 40. Alert is created for a pod restarting more than 3 times in 15 minutes
 * **Rule**: `PodFrequentlyRestarting`
