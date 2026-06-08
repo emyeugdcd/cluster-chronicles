@@ -1,10 +1,10 @@
-# 🧪 Kubernetes Alerting Verification Guide: Step-by-Step
+# Kubernetes Alerting Verification Guide: Step-by-Step
 
 This document provides step-by-step instructions to safely trigger and verify each of the custom Prometheus alerting rules defined in [prometheus-rules.yaml](../manifests/prometheus-rules.yaml) without disrupting the local Minikube cluster.
 
 ---
 
-## 🗺️ Index of Testing Steps
+## Index of Testing Steps
 
 1. [Alert 1: Node CPU Usage High (`NodeCPUUsageHigh`)](#alert-1-node-cpu-usage-high-nodecpuusagehigh)
 2. [Alert 2: Node Disk Space Low (`NodeDiskSpaceLow`)](#alert-2-node-disk-space-low-nodediskspacelow)
