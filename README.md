@@ -63,8 +63,12 @@ Before starting, ensure the following core tools are installed on your host mach
 ---
 
 ## 2. Step-by-Step Cluster Setup Playbook
+If you just want to run the entire project in one go, you can use the following command:
+```bash
+./deploy.sh
+```
 
-Execute the following commands in order to bring up the entire environment:
+However, if for the sake of learning you want to learn by doing, you can follow the instructions below step by step. Each step is designed to be executed independently, and you can experiment with each step to understand the underlying concepts.
 
 ### Step 1: Start Minikube & Enable Addons
 Start the cluster with 4 CPUs and 6GB RAM (optimized threshold):
