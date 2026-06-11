@@ -260,6 +260,10 @@ This document contains the verified theoretical answers, file references, and te
   * `group_wait`: Buffers alerts of the same group to send them in one notification.
   * `repeat_interval`: Prevents sending the same notification too frequently (e.g., wait 4 hours before alerting again).
 
+Run this command to see the "secret" alertmanager config:
+```
+kubectl get secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring -o jsonpath='{.data.alertmanager\.yaml}' | base64 --decode
+```
 ---
 
 ## Part 5: Alerting Verification & Triggers
@@ -528,6 +532,7 @@ Once I am done verifying, I changed the rule back to `< 20` in `manifests/promet
   ```bash
   kubectl get hpa -n vitals-app
   ```
+  
 
 ### 60. Scaling behavior is demonstrated by showing the increase and decrease in the number of pods based on the load
 * **Scale-up Process**:

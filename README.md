@@ -150,6 +150,7 @@ All core interfaces run cluster-internally. To access them on your host Mac/PC b
 | **Grafana UI** | 80 | [http://localhost:9000](http://localhost:9000) | `kubectl port-forward -n monitoring service/prometheus-grafana 9000:80` *(Pass: see below)* |
 | **Kibana Logs** | 5601 | [http://localhost:5601](http://localhost:5601) | `kubectl port-forward -n logging service/kibana-service 5601:5601` |
 | **Prometheus UI** | 9090 | [http://localhost:9191](http://localhost:9191) | `kubectl port-forward -n monitoring service/prometheus-kube-prometheus-prometheus 9191:9090` |
+| **Alertmanager UI** | 9093 | [http://localhost:9093](http://localhost:9093) | `kubectl port-forward -n monitoring service/prometheus-kube-prometheus-alertmanager 9093:9093` |
 
 Or just run this one command:
 ### Start all port-forwards in the background
@@ -158,6 +159,8 @@ kubectl port-forward -n vitals-app service/vitals-cicd-service 9090:8080 &
 kubectl port-forward -n monitoring service/prometheus-grafana 9000:80 &
 kubectl port-forward -n logging service/kibana-service 5601:5601 &
 kubectl port-forward -n monitoring service/prometheus-kube-prometheus-prometheus 9191:9090 &
+kubectl port-forward -n monitoring service/prometheus-kube-prometheus-alertmanager 9093:9093 &
+
 
 Note: After running these, press Enter to get your command prompt back. The services will continue running silently.
 
